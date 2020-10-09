@@ -18,6 +18,12 @@ def get_args():
                         help='if True, actor will select mean of action distribution, instead of sampling')
     parser.add_argument('--independent_std', default=False, action='store_true',
                         help='if True, standard deviations of the selected actions will not depend on state')
+    parser.add_argument('--env-name', default='Pendulum-v0', type=str,
+                        help='Open AI gym environment name passed to gym.make()')
+    parser.add_argument('--lr', default=3e-4, type=float,
+                        help='learning rate of the optimization algorithm')
+    parser.add_argument('--opt-alg', default='Adam', type=str,
+                        help='name of optimization algorithm')
     # todo add option for output tanh and options for how to parameterized std
     args = parser.parse_args()
 
