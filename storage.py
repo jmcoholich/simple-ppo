@@ -60,10 +60,13 @@ class ReplayBuffer:
 
 
     def compute_gae(self, values, gamma, gae_lambda):
-        ''' Computes generalized advantages estimates '''
+        ''' Computes generalized advantages estimates, AND afterwards standardizes all advantages'''
         values = values.squeeze()
         deltas = self.rewards[:-1] + gamma * values[1:] - values[:-1]
         assert len(deltas) == self.N
         deltas = torch.cat((deltas, torch.Tensor([0.])))
         for i in reversed(range(self.N)):
             self.advantages[i] = deltas[i] + gamma * gae_lambda * deltas[i + 1]
+
+        self.advantages -= self.advantages.mean()
+        self.advantages /= self.advantages.std() + 1e-10

@@ -30,11 +30,10 @@ class PPO:
             raise ValueError('\'%s\' is not currently a support optimization algorithm' %opt_alg)
 
 
-    def update(self):
+    def update(self, wandb=None):
         ''' Processes the sample data and updates the policy and value networks. Returns data for logging.'''
         assert not self.policy.deterministic
 
-        logs = {'Value MSE':[], 'PPO Clip Loss':[]}
         # do preprocessing
         with torch.no_grad():
             self.replay_buffer.compute_empirical_values(self.gamma)
@@ -51,13 +50,10 @@ class PPO:
             loss.backward()
             self.optimizer.step()
 
-            # logs['Value MSE'].append(value_loss)
-            # logs['PPO Clip Loss'].append(ppo_clip_loss)
-        logs['Value MSE'] = [4] * 20
-        logs['PPO Clip Loss'] = [3] * 20
-        logs['deez nuts'] = 30
-
-        return logs
+            # logging
+            if wandb:
+                wandb.log({'Value MSE Loss': value_loss,
+                            'PPO Clip Loss': ppo_clip_loss})
 
 
     def _compute_ppo_clip_loss(self, old_log_probs):

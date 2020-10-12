@@ -64,6 +64,7 @@ class Policy(nn.Module):
                 covariance_matrix=self._get_covariance_matrix(log_std))
             return dist.sample().numpy()
 
+
     def get_log_probs(self, obs, actions):
         if self.deterministic:
             raise NotImplementedError
