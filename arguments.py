@@ -2,9 +2,9 @@ import argparse
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--num-env-steps', type=int, default=int(1e6), 
+    parser.add_argument('--num-env-steps', type=int, default=int(100), 
                         help='Total samples to train on')
-    parser.add_argument('--num-steps', type=int, default=int(2048), 
+    parser.add_argument('--num-steps', type=int, default=int(10), 
                         help='Steps per update')
     parser.add_argument('--hidden-size', type=int, default=256, 
                         help='hidden size of the policy and value neural networks')
@@ -24,8 +24,13 @@ def get_args():
                         help='learning rate of the optimization algorithm')
     parser.add_argument('--opt-alg', default='Adam', type=str,
                         help='name of optimization algorithm')
-    # todo add option for output tanh and options for how to parameterized std
+    parser.add_argument('--gamma', default=0.99, type=float,
+                        help='discount factor')
+    parser.add_argument('--gae-lambda', default=0.95, type=float,
+                        help='lambda parameter for generalized advantage estimation')
+    parser.add_argument('--ppo-eps', default=0.2, type=float,
+                        help='epsilon clipping parameter for PPO-clip')
+    parser.add_argument('--epochs', default=20, type=int,
+                        help='number of training epochs per policy/value function update')
     args = parser.parse_args()
-
-    
     return args
