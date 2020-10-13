@@ -66,7 +66,7 @@ class Policy(nn.Module):
             return dist.sample().numpy()
 
 
-    def get_log_probs(self, obs, actions):
+    def get_log_probs(self, obs, actions, compute_entropy=False):
         if self.deterministic:
             raise NotImplementedError
             return self(obs)
@@ -74,12 +74,12 @@ class Policy(nn.Module):
             mean = self(obs)
             dist = torch.distributions.multivariate_normal.MultivariateNormal(mean, 
                 covariance_matrix=self._get_covariance_matrix(self.log_std))
-            return dist.log_prob(actions)
+            return dist.log_prob(actions), (dist.entropy() if compute_entropy else None)
         else:
             mean, log_std = self(obs)
             dist = torch.distributions.multivariate_normal.MultivariateNormal(mean, 
                 covariance_matrix=self._get_covariance_matrix(log_std))
-            return dist.log_prob(actions)
+            return dist.log_prob(actions), (dist.entropy() if compute_entropy else None)
 
 
     def _get_covariance_matrix(self, log_std):
@@ -91,8 +91,8 @@ class Policy(nn.Module):
         elif log_std.dim() == 0:
             log_std = log_std.unsqueeze(0)
         assert log_std.dim() == 1
-        std = log_std.exp() + 1e-9
-        return std.diag()
+        var = log_std.exp().pow(2) + 1e-9
+        return var.diag()
 
 
 class ValueNet(nn.Module):

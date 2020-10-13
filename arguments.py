@@ -2,9 +2,9 @@ import argparse
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--num-env-steps', type=int, default=int(100), 
+    parser.add_argument('--total-steps', type=int, default=int(100), 
                         help='Total samples to train on')
-    parser.add_argument('--num-steps', type=int, default=int(10), 
+    parser.add_argument('--steps-per-update', type=int, default=int(10), 
                         help='Steps per update')
     parser.add_argument('--hidden-size', type=int, default=256, 
                         help='hidden size of the policy and value neural networks')
@@ -16,7 +16,7 @@ def get_args():
                         help='Random seed (default = 1)')
     parser.add_argument('--deterministic', default=False, action='store_true',
                         help='if True, actor will select mean of action distribution, instead of sampling')
-    parser.add_argument('--independent_std', default=False, action='store_true',
+    parser.add_argument('--independent-std', default=False, action='store_true',
                         help='if True, standard deviations of the selected actions will not depend on state')
     parser.add_argument('--env-name', default='Pendulum-v0', type=str,
                         help='Open AI gym environment name passed to gym.make()')
@@ -34,5 +34,7 @@ def get_args():
                         help='number of training epochs per policy/value function update')
     parser.add_argument('--value-loss-coef', default=0.5, type=float,
                         help='weight for value net MSE term of loss function')
+    parser.add_argument('--entropy-coef', default=0.0, type=float,
+                        help='entropy bonus in policy net loss function')
     args = parser.parse_args()
     return args

@@ -10,7 +10,7 @@ from models import ValueNet, Policy
 from storage import ReplayBuffer
 from algs import PPO
 from utils import NormalizedEnv
-# TODO (add all tricks, normalization, gradient clipping, value loss clipping, entropy bonus, check all hyperparams 
+# TODO (add all tricks, gradient clipping, entropy bonus, check all hyperparams 
 # of kostrikov ppo)
 # Code my own EnvNormalize wrapper so I actually understand it
 # Where are my sources of randomness? ()
@@ -24,26 +24,27 @@ from utils import NormalizedEnv
 # I think I really just need to 1) check my logic and signs, 2) implement the rest of the tricks
 
 
+# things to fix
+# should I be normalizing or clipping my action outputs? 
+# no gradients seem to be flowing back to train std parameters, even with an entropy bonus
+# additionally, the last policy layer bias isn't training at all
+
 def main():
     wandb.login()
     wandb.init(project='ppo-setup2', monitor_gym=False)
     args = get_args()
-    
     wandb.config.update(args)
-
-    num_updates = -(-args.num_env_steps//args.num_steps) # ceil division to ensure total steps are met
+    num_updates = -(-args.total_steps//args.steps_per_update) # ceil division to ensure total steps are met
 
     # env = gym.wrappers.Monitor(NormalizedEnv(gym.make(args.env_name)), 
     #                             'recordings', 
     #                             force=True,
     #                             video_callable=lambda i: False)
 
-    
-    env = NormalizedEnv(gym.make(args.env_name))
-
+    env = NormalizedEnv(gym.make(args.env_name), gamma=args.gamma)
     torch.manual_seed(args.seed)
     env.seed(args.seed)
-    replay_buffer = ReplayBuffer(args.num_steps, env.observation_space.high.shape, env.action_space.high.shape)
+    replay_buffer = ReplayBuffer(args.steps_per_update, env.observation_space.high.shape, env.action_space.high.shape)
     policy = Policy(hidden_size=args.hidden_size,
                     hidden_layers=args.hidden_layers,
                     activation=args.activation,
@@ -66,7 +67,8 @@ def main():
                 gae_lambda=args.gae_lambda,
                 eps=args.ppo_eps,
                 epochs=args.epochs,
-                value_loss_coef=args.value_loss_coef)
+                value_loss_coef=args.value_loss_coef,
+                entropy_coef=args.entropy_coef)
 
     wandb.watch(policy, log='all')
     wandb.watch(value_net, log='all')

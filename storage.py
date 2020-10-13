@@ -14,10 +14,11 @@ class ReplayBuffer:
         self.done = torch.zeros(N, dtype=torch.bool)
         self.real_rewards = torch.zeros(N, dtype=torch.float32)
 
-        # Calculated values
+        # Calculated/passed values
         self.rtg = torch.zeros(N, dtype=torch.float32)
         self.empirical_values = torch.zeros(N, dtype=torch.float32)
         self.advantages = torch.zeros(N, dtype=torch.float32)
+        # self.predicted_values = torch.zeros(N + 1, dtype=torch.float32)
 
         self.N = N
         self.idx = 0
@@ -61,14 +62,14 @@ class ReplayBuffer:
                                         i < self.N - 1 else self.rewards[i])
 
 
-    def compute_gae(self, values, gamma, gae_lambda):
-        ''' Computes generalized advantages estimates, AND afterwards standardizes all advantages'''
-        values = values.squeeze()
-        deltas = self.rewards[:-1] + gamma * values[1:] - values[:-1]
+    def compute_gae(self, predicted_values, gamma, gae_lambda):
+        ''' Computes generalized advantages estimates'''
+        assert not (predicted_values == 0).all() # make sure that predicted values have actually been passed
+        deltas = self.rewards[:-1] + gamma * predicted_values[1:] - predicted_values[:-1]
         assert len(deltas) == self.N
         deltas = torch.cat((deltas, torch.Tensor([0.])))
         for i in reversed(range(self.N)):
             self.advantages[i] = deltas[i] + gamma * gae_lambda * deltas[i + 1]
 
-        self.advantages -= self.advantages.mean()
-        self.advantages /= self.advantages.std() + 1e-10
+        # self.advantages -= self.advantages.mean()
+        # self.advantages /= self.advantages.std() + 1e-10
