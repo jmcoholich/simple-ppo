@@ -21,10 +21,10 @@ class Policy(nn.Module):
         else:
             raise ValueError('\'%s\' is not a currently supported activation function' % activation)
 
-        self.linear_layers = [nn.Linear(obs_dim, hidden_size)]
+        self.policy_net_layers = nn.ModuleList([nn.Linear(obs_dim, hidden_size)])
         for _ in range(hidden_layers - 1):
-            self.linear_layers.append(nn.Linear(hidden_size, hidden_size))
-        self.linear_layers.append(nn.Linear(hidden_size, action_dim))
+            self.policy_net_layers.append(nn.Linear(hidden_size, hidden_size))
+        self.policy_net_layers.append(nn.Linear(hidden_size, action_dim))
 
         if not deterministic:
             if independent_std:
@@ -34,19 +34,20 @@ class Policy(nn.Module):
                 self.linear_log_std_layer = nn.Linear(hidden_size, action_dim)
 
 
+
     def forward(self, obs):
         ''' forward pass through policy network'''
         if not torch.is_tensor(obs):
             obs = torch.from_numpy(obs).float()
-        for i in range(len(self.linear_layers) -1):
-            obs = self.act(self.linear_layers[i](obs))
+        for i in range(len(self.policy_net_layers) -1):
+            obs = self.act(self.policy_net_layers[i](obs))
 
         if self.deterministic or self.independent_std:
         # Just output the action means, no need to calculate standard deviations
-            return self.linear_layers[-1](obs)
+            return self.policy_net_layers[-1](obs)
         else:
             # calculate and return means, log stds
-            return self.linear_layers[-1](obs), self.linear_log_std_layer(obs)
+            return self.policy_net_layers[-1](obs), self.linear_log_std_layer(obs)
 
 
     def get_action(self, obs):
@@ -110,16 +111,16 @@ class ValueNet(nn.Module):
         else:
             raise ValueError('\'%s\' is not a currently supported activation function' % activation)
 
-        self.linear_layers = [nn.Linear(obs_dim, hidden_size)]
+        self.val_net_layers = nn.ModuleList([nn.Linear(obs_dim, hidden_size)])
         for _ in range(hidden_layers - 1):
-            self.linear_layers.append(nn.Linear(hidden_size, hidden_size))
-        self.linear_layers.append(nn.Linear(hidden_size, 1))
+            self.val_net_layers.append(nn.Linear(hidden_size, hidden_size))
+        self.val_net_layers.append(nn.Linear(hidden_size, 1))
 
 
     def forward(self, obs):
         '''Forward pass of the neural network'''
         if not torch.is_tensor(obs):    
             obs = torch.from_numpy(obs).float()
-        for i in range(len(self.linear_layers) - 1):
-            obs = self.act(self.linear_layers[i](obs))
-        return self.linear_layers[-1](obs)
+        for i in range(len(self.val_net_layers) - 1):
+            obs = self.act(self.val_net_layers[i](obs))
+        return self.val_net_layers[-1](obs)

@@ -11,7 +11,8 @@ class PPO:
                 gamma=0.99, 
                 gae_lambda=0.95, 
                 eps=0.2,
-                epochs=20):
+                epochs=20,
+                value_loss_coef=0.5):
         self.replay_buffer = replay_buffer
         self.policy = policy
         self.value_net = value_net
@@ -19,6 +20,7 @@ class PPO:
         self.gae_lambda = gae_lambda
         self.eps = eps
         self.epochs = epochs
+        self.value_loss_coef = value_loss_coef
 
         opt_alg = opt_alg.lower()
         params = list(policy.parameters()) + list(value_net.parameters())
@@ -45,7 +47,7 @@ class PPO:
             self.optimizer.zero_grad()
             ppo_clip_loss = self._compute_ppo_clip_loss(old_log_probs)
             value_loss = self._compute_value_loss()
-            loss = -ppo_clip_loss + value_loss
+            loss = -ppo_clip_loss + self.value_loss_coef * value_loss
             # print(loss)
             loss.backward()
             self.optimizer.step()

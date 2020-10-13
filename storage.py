@@ -12,6 +12,7 @@ class ReplayBuffer:
         self.actions = torch.zeros((N, *action_space_shape), dtype=torch.float32)
         self.rewards = torch.zeros(N + 1, dtype=torch.float32)
         self.done = torch.zeros(N, dtype=torch.bool)
+        self.real_rewards = torch.zeros(N, dtype=torch.float32)
 
         # Calculated values
         self.rtg = torch.zeros(N, dtype=torch.float32)
@@ -22,11 +23,12 @@ class ReplayBuffer:
         self.idx = 0
 
 
-    def store(self, obs, action, reward, done):
+    def store(self, obs, action, reward, done, info):
         self.obs[self.idx] = torch.from_numpy(obs).float()
         self.actions[self.idx] = torch.from_numpy(action).float()
         self.rewards[self.idx] = reward
         self.done[self.idx] = done
+        self.real_rewards[self.idx] = info['real_reward']
         self.idx += 1
 
         if self.idx == self.N:

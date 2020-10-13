@@ -12,8 +12,8 @@ def get_args():
                         help='number of hidden layers in the policy and value neural networks')
     parser.add_argument('--activation', type=str, default='relu', 
                         help='non-linear activation function for hidden layers. (Choose from tanh, sigmoid, or relu)')
-    parser.add_argument('--seed', type=int, default=None,
-                        help='Random seed')
+    parser.add_argument('--seed', type=int, default=1,
+                        help='Random seed (default = 1)')
     parser.add_argument('--deterministic', default=False, action='store_true',
                         help='if True, actor will select mean of action distribution, instead of sampling')
     parser.add_argument('--independent_std', default=False, action='store_true',
@@ -32,5 +32,7 @@ def get_args():
                         help='epsilon clipping parameter for PPO-clip')
     parser.add_argument('--epochs', default=20, type=int,
                         help='number of training epochs per policy/value function update')
+    parser.add_argument('--value-loss-coef', default=0.5, type=float,
+                        help='weight for value net MSE term of loss function')
     args = parser.parse_args()
     return args
