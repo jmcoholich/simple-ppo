@@ -66,6 +66,9 @@ class NormalizedEnv(gym.core.Wrapper):
         else:
             return obs
 
+    def inverse_filt_rew(self, rew):
+        return rew * np.sqrt(self.ret_rms.var + self.epsilon)
+
 
     def reset(self):
         self.ret = np.zeros(())

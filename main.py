@@ -73,15 +73,10 @@ from utils import NormalizedEnv
 # Now to-do ... just correctly bootstrap and calculate advantages and values, taking into account the truncation info
 # I think calling env.reset() at the beginning of every sample is fine.
 
-# Just add an assert statement to ensure that whenever I have done, I also have a truncation key in info
-
-
-
+# Check to make sure my real_rewards logging isn't messed up by adding the zero
 
 
 # Changes I will make
-# - store self.env_timeout along with self.done and figure out how to shit myself.
-# env timeout should also be true when my buffer gets full, because I will presumably be doing the same thing.
 # - throw up a warning if I get a new type of info
 def main():
     wandb.login()
@@ -131,21 +126,47 @@ def main():
 
     for i in range(num_updates):
         obs = env.reset()
-
         while True:
             action = policy.get_action(obs)
             next_obs, reward, done, info = env.step(action)
             wandb.log({'reward': info['real_reward']})
-            timeout = replay_buffer.store(obs, action, reward, done, info)
+            buffer_timeout = replay_buffer.store(obs, action, reward, done, info)
             obs = next_obs
-            if timeout and done:
-                replay_buffer.bootstrap_reward(obs, value_net(obs).item()) #TODO think about whether this is right or no
-                break
-            if timeout:
-                replay_buffer.bootstrap_reward(obs, value_net(obs).item())
-                break
+
+            # an episode always ends with done = True, no matter if it occured through the env returning done (which 
+            # occurs for terminal state and for env timeout) or for the buffer filling up and timing out
+            # if timeout=True as well, then the step after done=True will contain a bootstrapped reward. Else, 0 reward.
             if done:
+                if info['TimeLimit.truncated']:
+                    with torch.no_grad():
+                        reward = value_net(obs).item() # value net should already be outputting normalized values
+                        real_reward = env.inverse_filt_rew(reward)
+                else:
+                    reward = 0 # rew = 0 normalized by env wrapper is still 0, since mean is not subtracted
+                    real_reward = 0
+                # in this stored step, the 'action' and 'done' values should never be used, they are just placeholders 
+                replay_buffer.store(obs, action, reward, False, {'real_reward': real_reward}) 
                 obs = env.reset()
+            else:
+                assert not 'TimeLimit.truncated' in info
+            if buffer_timeout:
+                if done: # I have already taken care of the stuff that needs to happen, (N+1)th values filled
+                    break
+                with torch.no_grad():
+                    reward = value_net(obs).item()
+                    real_reward = env.inverse_filt_rew(reward)
+                replay_buffer.store(obs, action, reward, False, {'real_reward': real_reward})
+                break
+
+
+            # if timeout and done:
+            #     replay_buffer.bootstrap_reward(obs, value_net(obs).item()) #TODO think about whether this is right or no
+            #     break
+            # if timeout:
+            #     replay_buffer.bootstrap_reward(obs, value_net(obs).item())
+            #     break
+            # if done:
+            #     obs = env.reset()
         avg_rew = replay_buffer.real_rewards.mean()
         print('iter',i,'avg reward', avg_rew)
         wandb.log({'Average Sample Reward': avg_rew})

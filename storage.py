@@ -9,10 +9,11 @@ class ReplayBuffer:
 
         # Sample data
         self.obs = torch.zeros((N + 1, *obs_space_shape), dtype=torch.float32)
-        self.actions = torch.zeros((N, *action_space_shape), dtype=torch.float32)
+        self.actions = torch.zeros((N + 1, *action_space_shape), dtype=torch.float32)
         self.rewards = torch.zeros(N + 1, dtype=torch.float32)
-        self.done = torch.zeros(N, dtype=torch.bool)
-        self.real_rewards = torch.zeros(N, dtype=torch.float32)
+        self.done = torch.zeros(N + 1, dtype=torch.bool)
+        self.timeout = torch.zeros(N + 1, dtype=torch.bool)
+        self.real_rewards = torch.zeros(N + 1, dtype=torch.float32)
 
         # Calculated/passed values
         self.rtg = torch.zeros(N, dtype=torch.float32)
@@ -30,12 +31,22 @@ class ReplayBuffer:
         self.rewards[self.idx] = reward
         self.done[self.idx] = done
         self.real_rewards[self.idx] = info['real_reward']
-        self.idx += 1
+        if done:
+            self.timeout[self.idx] = info['TimeLimit.truncated']
 
-        if self.idx == self.N:
+        if self.idx == self.N - 1: # if we just stored the second-to-last step
+            # for later calculations, I say I did NOT timeout if I happened to reach a terminal state at the same time
+            self.timeout[self.idx] = False if self.done[self.idx] else True 
+            self.done[self.idx] = True
+            self.idx += 1
+            return True  # return value indicates buffer timeout
+        elif self.idx == self.N: # if we just filled in the final "bootstrapped" step
             self.idx = 0
-            return True  # return value indicates timeout
+            # assert that timeout is never true when done is false
+            assert self.done(torch.nonzero(self.timeout)).all()
+            return False
         else:
+            self.idx += 1
             return False
 
 
