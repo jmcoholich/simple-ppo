@@ -54,7 +54,7 @@ from utils import NormalizedEnv
 # Perhaps start by ignoring the env timeout endstates -- just treat those like true terminal
 
 
-# MY GAE LAMBDA DOESNT TAKE INTO ACCOUNT 'DONE'
+# MY GAE LAMBDA DOESNT TAKE INTO ACCOUNT 'DONE' -- fixed
 
 def main():
     wandb.login()
