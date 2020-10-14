@@ -53,9 +53,36 @@ from utils import NormalizedEnv
 # Kostrikov's reward buffer has shape N, not N + 1 like mine. Also check in compute_gae
 # Perhaps start by ignoring the env timeout endstates -- just treat those like true terminal
 
+# Ok now to-do
+# - understand kostrikov's implementation of masks and bad masks, find out how he finds out if the env just timed out
+# - implement that in my own code
+# - try on cheese env, then pendulum
 
-# MY GAE LAMBDA DOESNT TAKE INTO ACCOUNT 'DONE' -- fixed
 
+# Also to do-- store old log probs during the forward pass instead of having to calculate them again later
+# 
+# I* don't think I need to write a wrapper to keep track of truncate time limits, bc the gym envs already output when 
+# they are truncated. Should I rely on the member variable or info? 
+
+# I think kostrikov's implementation has the small hole that the env could reach a terminal state at the same time as 
+# it times out.
+
+# so I have env._max_episode_steps (seems like every env has this, and perhaps I should add timeout to my own?)
+# and in info, once 'done' happens, I have {'TimeLimit.truncated': True}
+
+# Now to-do ... just correctly bootstrap and calculate advantages and values, taking into account the truncation info
+# I think calling env.reset() at the beginning of every sample is fine.
+
+# Just add an assert statement to ensure that whenever I have done, I also have a truncation key in info
+
+
+
+
+
+# Changes I will make
+# - store self.env_timeout along with self.done and figure out how to shit myself.
+# env timeout should also be true when my buffer gets full, because I will presumably be doing the same thing.
+# - throw up a warning if I get a new type of info
 def main():
     wandb.login()
     wandb.init(project='ppo-setup3', monitor_gym=False)
@@ -69,6 +96,7 @@ def main():
     #                             video_callable=lambda i: False)
 
     env = NormalizedEnv(gym.make(args.env_name), gamma=args.gamma)
+    wandb.config.env_max_episode_steps = env._max_episode_steps
     # env = gym.make(args.env_name) #  
     torch.manual_seed(args.seed)
     env.seed(args.seed)
