@@ -16,8 +16,8 @@ class ReplayBuffer:
         self.real_rewards = torch.zeros(N + 1, dtype=torch.float32)
 
         # Calculated/passed values
-        self.rtg = torch.zeros(N, dtype=torch.float32)
-        self.empirical_values = torch.zeros(N, dtype=torch.float32)
+        # self.rtg = torch.zeros(N, dtype=torch.float32)
+        # self.empirical_values = torch.zeros(N, dtype=torch.float32)
         self.advantages = torch.zeros(N, dtype=torch.float32)
         # self.predicted_values = torch.zeros(N + 1, dtype=torch.float32)
 
@@ -50,12 +50,12 @@ class ReplayBuffer:
             return False
 
 
-    def bootstrap_reward(self, obs, rew):
-        '''Store the final state and get a bootstrapped final reward.'''
-        # assert not self.done[-1]
-        # assert len(self.obs) == self.N + 1
-        self.obs[self.N] = torch.from_numpy(obs).float()
-        self.rewards[-1] = rew
+    # def bootstrap_reward(self, obs, rew):
+    #     '''Store the final state and get a bootstrapped final reward.'''
+    #     # assert not self.done[-1]
+    #     # assert len(self.obs) == self.N + 1
+    #     self.obs[self.N] = torch.from_numpy(obs).float()
+    #     self.rewards[-1] = rew
 
 
     # def compute_rewards_to_go(self):
@@ -75,11 +75,12 @@ class ReplayBuffer:
     def compute_gae(self, predicted_values, gamma, gae_lambda):
         ''' Computes generalized advantages estimates'''
         assert not (predicted_values == 0).all() # make sure that predicted values have actually been passed
-        deltas = self.rewards[:-1] + gamma * predicted_values[1:] * (~self.done) - predicted_values[:-1]
+        deltas = self.rewards[:-1] + gamma * predicted_values[1:] * (~(self.done and (~ self.timeout)))\
+                 - predicted_values[:-1]
         assert len(deltas) == self.N
         deltas = torch.cat((deltas, torch.Tensor([0.])))
         for i in reversed(range(self.N)):
-            self.advantages[i] = deltas[i] + gamma * gae_lambda * deltas[i + 1] * (not self.done[i])
+            self.advantages[i] = deltas[i] + gamma * gae_lambda * self.advantages[i + 1] * (not self.done[i])
 
         # self.advantages -= self.advantages.mean()
         # self.advantages /= self.advantages.std() + 1e-10

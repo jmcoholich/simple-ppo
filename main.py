@@ -75,9 +75,32 @@ from utils import NormalizedEnv
 
 # Check to make sure my real_rewards logging isn't messed up by adding the zero
 
+# ALSO make sure I'm back propping through the correct things!! Make sure I call torch.no_grad() on the correct things.
+
+# So... I need to ensure that my value loss and entropy loss aren't using the bootstrapped steps
+# But let me think. The existence of the bootstrapped step causes lots of problems. But I _do_ need it in order to store
+# final state to get the value of it... but do I actually need to do that? how does kostrikov do it? 
+
+
+# Kostrikov does nothing with masks when calculating his loss functions, perhaps because he he already dealt with it 
+# when generating batches. Or, different scheme entirely, check gae lambda calc and batch generation
+
+# !!! if all else fails, I found a major error in previous implementation!! my GAE had was adding delta[i+1] instead 
+# of self.advantages[i+1]
+
+# So I don't think Kostrikov does what I'm doing, but I think i can make what I'm doing work, then try to clean it up
+# later and think of a simpler way.
+
 
 # Changes I will make
 # - throw up a warning if I get a new type of info
+
+
+""" Now what to do:
+Run this implementation, see if it works, on original Pendulum.
+Run implementation before all these changes, but fix the gae calculation error, see if it works on original 
+pendulum.
+If only the second one works, think of a more simple way to take into account time_limits.  """
 def main():
     wandb.login()
     wandb.init(project='ppo-setup3', monitor_gym=False)
