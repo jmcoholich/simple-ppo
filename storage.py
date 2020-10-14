@@ -40,36 +40,35 @@ class ReplayBuffer:
 
 
     def bootstrap_reward(self, obs, rew):
-        '''Store the final state and get a bootstrapped final reward. (This method is only called if the final state
-        is not terminal. '''
-        assert not self.done[-1]
-        assert len(self.obs) == self.N + 1
+        '''Store the final state and get a bootstrapped final reward.'''
+        # assert not self.done[-1]
+        # assert len(self.obs) == self.N + 1
         self.obs[self.N] = torch.from_numpy(obs).float()
         self.rewards[-1] = rew
 
 
-    def compute_rewards_to_go(self):
-        '''Computes rewards-to-go'''
-        for i in reversed(range(self.N)):
-            self.rtg[i] = self.rewards[i] + self.done[i] * (self.rtg[i + 1] if i < self.N - 1 else self.rewards[i])
+    # def compute_rewards_to_go(self):
+    #     '''Computes rewards-to-go'''
+    #     for i in reversed(range(self.N)):
+    #         self.rtg[i] = self.rewards[i] + self.done[i] * (self.rtg[i + 1] if i < self.N - 1 else self.rewards[i])
     
 
-    def compute_empirical_values(self, gamma):
-        '''Computes empirical values of each state, based on sample data (not from value function). However, this is
-        using the bootstrapped final value from the value function.'''
-        for i in reversed(range(self.N)):
-            self.empirical_values[i] = self.rewards[i] + gamma * self.done[i] * (self.empirical_values[i + 1] if\
-                                        i < self.N - 1 else self.rewards[i])
+    # def compute_empirical_values(self, gamma):
+    #     '''Computes empirical values of each state, based on sample data (not from value function). However, this is
+    #     using the bootstrapped final value from the value function.'''
+    #     for i in reversed(range(self.N)):
+    #         self.empirical_values[i] = self.rewards[i] + gamma * self.done[i] * (self.empirical_values[i + 1] if\
+    #                                     i < self.N - 1 else self.rewards[i])
 
 
     def compute_gae(self, predicted_values, gamma, gae_lambda):
         ''' Computes generalized advantages estimates'''
         assert not (predicted_values == 0).all() # make sure that predicted values have actually been passed
-        deltas = self.rewards[:-1] + gamma * predicted_values[1:] - predicted_values[:-1]
+        deltas = self.rewards[:-1] + gamma * predicted_values[1:] * (~self.done) - predicted_values[:-1]
         assert len(deltas) == self.N
         deltas = torch.cat((deltas, torch.Tensor([0.])))
         for i in reversed(range(self.N)):
-            self.advantages[i] = deltas[i] + gamma * gae_lambda * deltas[i + 1]
+            self.advantages[i] = deltas[i] + gamma * gae_lambda * deltas[i + 1] * (not self.done[i])
 
         # self.advantages -= self.advantages.mean()
         # self.advantages /= self.advantages.std() + 1e-10

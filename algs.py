@@ -11,9 +11,9 @@ class PPO:
                 gamma=0.99, 
                 gae_lambda=0.95, 
                 eps=0.2,
-                epochs=20,
+                epochs=10,
                 value_loss_coef=0.5,
-                entropy_coef=0):
+                entropy_coef=0.0):
         self.replay_buffer = replay_buffer
         self.policy = policy
         self.value_net = value_net
@@ -58,7 +58,7 @@ class PPO:
                 compute_entropy=True) #(0.0 != self.entropy_coef)) # Always compute entropy just for logging 
             value_loss = self._compute_value_loss(value_targets, old_predicted_values)
             loss = -ppo_clip_obj + self.value_loss_coef * value_loss - self.entropy_coef * entropy
-            print(loss)
+            # print(loss)
             # print(loss)
             loss.backward()
             self.optimizer.step()
