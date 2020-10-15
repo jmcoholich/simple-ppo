@@ -101,6 +101,9 @@ Run this implementation, see if it works, on original Pendulum.
 Run implementation before all these changes, but fix the gae calculation error, see if it works on original 
 pendulum.
 If only the second one works, think of a more simple way to take into account time_limits.  """
+'''I think the way to make it work without the bootstrapped step is to add V(final obs) * gamma to the reward for that 
+step. Do the math to make sure that works.'''
+
 def main():
     wandb.login()
     wandb.init(project='ppo-setup3', monitor_gym=False)
@@ -112,9 +115,9 @@ def main():
     #                             'recordings', 
     #                             force=True,
     #                             video_callable=lambda i: False)
-
-    env = NormalizedEnv(gym.make(args.env_name), gamma=args.gamma)
-    wandb.config.env_max_episode_steps = env._max_episode_steps
+    env = gym.make(args.env_name)
+    env = NormalizedEnv(env, gamma=args.gamma)
+    wandb.config.env_max_episode_steps = env.env._max_episode_steps
     # env = gym.make(args.env_name) #  
     torch.manual_seed(args.seed)
     env.seed(args.seed)
@@ -163,7 +166,7 @@ def main():
                 if info['TimeLimit.truncated']:
                     with torch.no_grad():
                         reward = value_net(obs).item() # value net should already be outputting normalized values
-                        real_reward = env.inverse_filt_rew(reward)
+                        real_reward = env.inverse_filt_rew(reward).item()
                 else:
                     reward = 0 # rew = 0 normalized by env wrapper is still 0, since mean is not subtracted
                     real_reward = 0
@@ -177,7 +180,7 @@ def main():
                     break
                 with torch.no_grad():
                     reward = value_net(obs).item()
-                    real_reward = env.inverse_filt_rew(reward)
+                    real_reward = env.inverse_filt_rew(reward).item()
                 replay_buffer.store(obs, action, reward, False, {'real_reward': real_reward})
                 break
 

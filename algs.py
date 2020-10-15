@@ -46,16 +46,16 @@ class PPO:
             self.replay_buffer.compute_gae(old_predicted_values, self.gamma, self.gae_lambda) # checked 
             # below is fine, just don't use supp
             value_targets = self.replay_buffer.advantages + old_predicted_values[:-1] 
-            old_log_probs, _  = self.policy.get_log_probs(self.replay_buffer.obs[:-1], self.replay_buffer.actions, 
+            old_log_probs, _  = self.policy.get_log_probs(self.replay_buffer.obs[:-1], self.replay_buffer.actions[:-1], 
                                                             compute_entropy=False) # again just don't use supp
             # calculation of mean exludes the 'bootstrapped' steps at end of every episode 
             N = len(self.replay_buffer.advantages)
             bs_idcs = self.replay_buffer.done.nonzero() + 1
             if N in bs_idcs:
-                assert bs_idcs[0,-1] == N
-                bs_idcs = bs_idcs[:,:-1] # get rid of that last value, since it's already gone
+                assert bs_idcs[-1,0] == N
+                bs_idcs = bs_idcs[:-1,:] # get rid of that last value, since it's already gone
             mean_ = (self.replay_buffer.advantages.sum() - self.replay_buffer.advantages[bs_idcs].sum())/\
-                    (N - len(bs_idcs[0]))
+                    (N - len(bs_idcs))
             advantages = self.replay_buffer.advantages - mean_
             advantages /= self.replay_buffer.advantages.std() + 1e-9
             # ensure that the advantage at any bootstrapped step is zero, so that nothing backprops through it
@@ -82,12 +82,12 @@ class PPO:
 
     def _compute_ppo_clip_obj(self, old_log_probs, advantages, bs_idcs, compute_entropy=True):
         '''Combine with entropy calculation to avoid separate fwd pass for entropy'''
-        log_probs, entropy = self.policy.get_log_probs(self.replay_buffer.obs[:-1], self.replay_buffer.actions,
+        log_probs, entropy = self.policy.get_log_probs(self.replay_buffer.obs[:-1], self.replay_buffer.actions[:-1],
             compute_entropy=compute_entropy)
         ratios = (log_probs - old_log_probs).exp()
         # calculate mean of entropy without including bs steps
-        assert len(entropy) == 1
-        entropy_mean = (entropy.sum() - entropy[bs_idcs].sum())/(len(entropy[0]) - len(bs_idcs[0]))
+        assert len(entropy) == self.replay_buffer.N
+        entropy_mean = (entropy.sum() - entropy[bs_idcs].sum())/(len(entropy) - len(bs_idcs))
         return torch.min(ratios * advantages, torch.clamp(ratios, 1 - self.eps, 1 + self.eps) * advantages).mean(),\
             entropy_mean
 
@@ -101,4 +101,4 @@ class PPO:
         clipped_value_loss  = (value_pred_clipped - value_targets).pow(2)
         loss_ = torch.max(value_loss, clipped_value_loss)
         assert len(loss_) != 1
-        return 0.5 * (loss_.sum() - loss_[bs_idcs].sum())/(len(loss_) - len(bs_idcs[0]))
+        return 0.5 * (loss_.sum() - loss_[bs_idcs].sum())/(len(loss_) - len(bs_idcs))

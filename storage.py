@@ -43,7 +43,7 @@ class ReplayBuffer:
         elif self.idx == self.N: # if we just filled in the final "bootstrapped" step
             self.idx = 0
             # assert that timeout is never true when done is false
-            assert self.done(torch.nonzero(self.timeout)).all()
+            assert self.done[torch.nonzero(self.timeout)].all()
             return False
         else:
             self.idx += 1
@@ -75,12 +75,12 @@ class ReplayBuffer:
     def compute_gae(self, predicted_values, gamma, gae_lambda):
         ''' Computes generalized advantages estimates'''
         assert not (predicted_values == 0).all() # make sure that predicted values have actually been passed
-        deltas = self.rewards[:-1] + gamma * predicted_values[1:] * (~(self.done and (~ self.timeout)))\
+        deltas = self.rewards[:-1] + gamma * predicted_values[1:] * (~(self.done[:-1] & (~ self.timeout[:-1])))\
                  - predicted_values[:-1]
         assert len(deltas) == self.N
-        deltas = torch.cat((deltas, torch.Tensor([0.])))
         for i in reversed(range(self.N)):
-            self.advantages[i] = deltas[i] + gamma * gae_lambda * self.advantages[i + 1] * (not self.done[i])
+            self.advantages[i] = deltas[i] + gamma * gae_lambda *\
+                ( self.advantages[i + 1] * (not self.done[i]) if i != self.N-1 else 0) 
 
         # self.advantages -= self.advantages.mean()
         # self.advantages /= self.advantages.std() + 1e-10
