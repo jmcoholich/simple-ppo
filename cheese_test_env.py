@@ -6,24 +6,13 @@ from os import path
 
 
 class PendulumEnv(gym.Env):
-    metadata = {
-        'render.modes': ['human', 'rgb_array'],
-        'video.frames_per_second': 30
-    }
+    metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 30}
 
     def __init__(self, g=10.0):
 
-        high = np.array([1., 1., 1.], dtype=np.float32)
-        self.action_space = spaces.Box(
-            low=-1,
-            high=1, shape=(1,),
-            dtype=np.float32
-        )
-        self.observation_space = spaces.Box(
-            low=-high,
-            high=high,
-            dtype=np.float32
-        )
+        high = np.array([1.0, 1.0, 1.0], dtype=np.float32)
+        self.action_space = spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
         self.state = None
         self.seed()
 
@@ -47,11 +36,8 @@ class PendulumEnv(gym.Env):
         else:
             self.state = -np.ones(3)
 
-
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         return
 
     def close(self):
         return
-
-
