@@ -2,3 +2,4 @@ gym==0.23.1
 torch==1.11.0
 numpy==1.22.4
 wandb==0.12.17
+pygame==2.1.2

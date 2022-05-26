@@ -3,7 +3,17 @@
 This is an implementation of the [Proximal Policy Optimization Algorithm](https://arxiv.org/abs/1707.06347) (PPO-clip). It is a simple implementation without many tricks and works on the Open AI Gym [Pendulum-v1](https://www.gymlibrary.ml/environments/classic_control/pendulum/) environment.
 
 
-## Create Conda env and install dependencies
+## Installation
+Clone the repository:
+
+`git clone https://github.com/jmcoholich/simple-ppo.git`
+
+`cd simple-ppo`
+
+Install anaconda if you haven't already: https://www.anaconda.com/products/distribution
+
+Then run:
+
 `conda create -n rl_env python=3.8.8`
 
 `conda activate rl_env`
