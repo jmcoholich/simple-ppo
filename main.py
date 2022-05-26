@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 import wandb
 import sys
+import pickle
 
 from models import ValueNet, Policy
 from storage import ReplayBuffer
@@ -118,9 +119,17 @@ def main():
         wandb = None
     if not os.path.isdir("saved_models"):
         os.mkdir("saved_models")
-    datetime_str = datetime.now().strftime("%y%m%d%H%M%S%f")
+    if play:
+        datetime_str = args.play
+    else:
+        datetime_str = datetime.now().strftime("%y%m%d%H%M%S%f")
+    save_folder = os.path.join("saved_models", datetime_str)
+    if not play:
+        os.mkdir(save_folder)
+        print(f"Saving model checkpoints in {save_folder}")
+    else:
+        print(f"Loading model checkpoint from {save_folder}")
 
-    print(f"Saving policy network as 'saved_models/{datetime_str}.pt'")
     max_rew = -1000000.0
     num_updates = -(
         -args.total_steps // args.steps_per_update
@@ -130,8 +139,12 @@ def main():
     #                             'recordings',
     #                             force=True,
     #                             video_callable=lambda i: False)
-    env = gym.make(args.env_name)
-    env = NormalizedEnv(env, gamma=args.gamma)
+    if play:
+        with open(os.path.join(save_folder, "env_norm.pkl"), "rb") as f:
+            env = pickle.load(f)
+    else:
+        env = gym.make(args.env_name)
+        env = NormalizedEnv(env, gamma=args.gamma)
 
     if args.wandb:
         wandb.config.env_max_episode_steps = env.env._max_episode_steps
@@ -177,8 +190,7 @@ def main():
         # LOAD the policy state dict
         if args.play[-3:] != ".pt":
             args.play += ".pt"
-        path = os.path.join("saved_models", args.play)
-        print(f"Loading model from {path}")
+        path = os.path.join(save_folder, "policy.pt")
         saved_state_dict = torch.load(path)
         policy.load_state_dict(saved_state_dict, strict=True)
     if args.wandb:
@@ -244,9 +256,11 @@ def main():
                 wandb.log({"Average Sample Reward": avg_rew})
             agent.update(wandb)
             if avg_rew > max_rew:
-                path = os.path.join("saved_models", f"{datetime_str}.pt")
+                path = os.path.join(save_folder, "policy.pt")
                 print(f"==> Saving policy with reward {avg_rew :0.2f} as {path}")
-                torch.save(policy.state_dict(), path)  # TODO need to save normalization
+                torch.save(policy.state_dict(), path)
+                with open(os.path.join(save_folder, "env_norm.pkl"), "wb") as f:
+                    pickle.dump(env, f)
                 max_rew = avg_rew
             # torch.save(value_net.state_dict(), os.path.join(wandb.run.dir, "value_net.pt"))
 
